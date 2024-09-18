@@ -68,7 +68,8 @@ runs:
       shell: bash
       run: |
         # loop services
-        for service in ${{inputs.services }} ; do
+        services
+        for service in $(echo ${{inputs.services }} ) ; do
           clever service link-addon ${service} --alias ${{ inputs.alias }}
         done
 
