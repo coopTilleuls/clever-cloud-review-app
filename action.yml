@@ -29,8 +29,8 @@ inputs:
     description: 'Set environment variables'
     required: false
     default: 'false'
-  service:
-    description: "add-on sevices to link"
+  services:
+    description: "add-ons  to link"
     required: false
     default: ''
   environment:
@@ -64,10 +64,13 @@ runs:
        done
 
     - name: Link service
-      if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' && inputs.service != '' }}
+      if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' && inputs.services != '' }}
       shell: bash
-      run: clever service link-addon ${{ inputs.service }} --alias ${{ inputs.alias }}
-
+      run: |
+        # loop services
+        echo -e ${{ inputs.services }} | while read service ; do
+          clever service link-addon ${service} --alias ${{ inputs.alias }}
+        done
 
     - name: Deploy app
       if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' }}
