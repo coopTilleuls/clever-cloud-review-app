@@ -69,7 +69,7 @@ runs:
       run: |
         # loop services
         for service in $(echo "${{inputs.services }}" ) ; do
-          echo clever service link-addon ${service} --alias ${{ inputs.alias }}
+          clever service link-addon ${service} --alias ${{ inputs.alias }}
         done
 
     - name: Deploy app
