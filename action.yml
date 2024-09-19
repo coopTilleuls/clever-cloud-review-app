@@ -33,6 +33,10 @@ inputs:
     description: "add-ons  to link"
     required: false
     default: ''
+  min-flavor:
+    description: "min flavor for the application"
+    required: false
+    default:  'nano'
   environment:
         description: 'Environment to run tests against'
         required: true
@@ -50,6 +54,7 @@ runs:
       run: |
         clever create --type ${{ inputs.type }} ${{ inputs.name }} --alias ${{ inputs.alias }} --region ${{ inputs.region }} --org ${{ inputs.organization }}
         clever domain add ${{ inputs.domain }} --alias ${{ inputs.alias }}
+        clever scale --min-favor ${{ input.min-flavor }} --alias ${{ inputs.alias }}
 
     - name: Set environment variables
       if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' && inputs.set-env }}
