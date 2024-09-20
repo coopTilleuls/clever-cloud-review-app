@@ -91,6 +91,7 @@ runs:
       run: |
         clever link -o "$ORGA_ID" ${{ inputs.name }}
         # clever deploy --force --alias ${{ inputs.alias }}
+        git config http.postBuffer 524288000
         python ${{ github.action_path }}dist/clever-deploy.py --branch "$BRANCH" --app-alias ${{ inputs.alias }}
 
     - name: Update app
