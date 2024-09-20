@@ -81,7 +81,7 @@ runs:
       if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' }}
       shell: bash
       id: deploy
-      run: clever deploy --alias ${{ inputs.alias }}
+      run: clever deploy --alias ${{ inputs.alias }} -v
 
 
     - name: Update app
