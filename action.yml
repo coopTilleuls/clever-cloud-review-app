@@ -81,7 +81,7 @@ runs:
       if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' }}
       shell: bash
       id: deploy
-      run: clever deploy --alias ${{ inputs.alias }} -v
+      run: python scripts/clever-deploy.py --branch "$BRANCH" --app-alias ${{ inputs.alias }}
 
 
     - name: Update app
@@ -90,7 +90,8 @@ runs:
       id: update
       run: |
         clever link -o "$ORGA_ID" ${{ inputs.name }}
-        clever deploy --force --alias ${{ inputs.alias }}
+        # clever deploy --force --alias ${{ inputs.alias }}
+        python scripts/clever-deploy.py --branch "$BRANCH" --app-alias ${{ inputs.alias }}
 
     - name: Update app
       if: ${{ github.event.action == 'closed' }}
