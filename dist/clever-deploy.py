@@ -79,7 +79,9 @@ esac
     print(f"Following deployment {deployment_uid}")
 
     while True:
+        print("in while True")
         deployments = get_deployments(clever_cli, app_alias)
+        print(f'in loop : deployements = {deployments}')
         deployment_info = [d for d in deployments if d["uuid"] == deployment_uid][0]
         print(deployment_info)
         if deployment_info["state"] != "WIP":
