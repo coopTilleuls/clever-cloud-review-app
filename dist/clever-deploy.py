@@ -14,6 +14,13 @@ def get_deployments(clever_cli, app_alias):
     activity_output = subprocess.check_output([clever_cli, "activity", "--format=json", "--alias", app_alias])
     return json.loads(activity_output)
 
+def deployment_logs(clever_cli, deployment, app_alias):
+    logs = subprocess.check_output([clever_cli, "logs",
+                                    "--deployment-id", deployment.get("uuid"),
+                                    "--since", deployment.get("date"),
+                                    "--alias", app_alias])
+    print(logs)
+
 
 def deploy():
     parser = argparse.ArgumentParser()
@@ -78,6 +85,8 @@ esac
         if deployment_info["state"] != "WIP":
             break
         time.sleep(10)
+
+    deployment_logs(clever_cli, deployments[0], app_alias)
 
     if deployment_info["state"] != "OK":
         sys.exit(f"Something went wrong in deployment {deployment_uid}")
