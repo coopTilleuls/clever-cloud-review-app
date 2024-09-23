@@ -88,7 +88,7 @@ esac
             break
         time.sleep(10)
 
-    deployment_logs(clever_cli, deployments[0], app_alias)
+    #deployment_logs(clever_cli, deployments[0], app_alias)
 
     if deployment_info["state"] != "OK":
         sys.exit(f"Something went wrong in deployment {deployment_uid}")
