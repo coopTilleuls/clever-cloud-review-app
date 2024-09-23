@@ -17,7 +17,7 @@ def get_deployments(clever_cli, app_alias):
 def deployment_logs(clever_cli, deployment, app_alias):
     logs = subprocess.check_output([clever_cli, "logs",
                                     "--deployment-id", deployment.get("uuid"),
-                                    "--since", deployment.get("date"),
+                                    "--since", str(deployment.get("date")),
                                     "--alias", app_alias])
     print(logs)
 
