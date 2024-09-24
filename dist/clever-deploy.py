@@ -13,13 +13,13 @@ from datetime import date, datetime
 
 
 def get_deployments(clever_cli, app_alias):
-    activity_output = run(f'{clever_cli} activity" --format=json --alias {app_alias}')
+    activity_output = run(f'{clever_cli} activity --format=json --alias {app_alias}')
     return json.loads(activity_output.stdout)
 
 def deployment_logs(clever_cli, deployment, app_alias):
     after = datetime.fromtimestamp(deployment.get("date")).isoformat()
     uuid = deployment.get("uuid")
-    cmd = f"{clever_cli} logs --deployment-id {uuid} --after {after} --alias {app_alias}"
+    cmd = f'{clever_cli} logs --deployment-id {uuid} --after {after} --alias {app_alias}'
     fg = run(cmd, asynchronous=True)
     return fg
 
