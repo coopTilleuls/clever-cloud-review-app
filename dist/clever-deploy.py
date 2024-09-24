@@ -17,7 +17,7 @@ def get_deployments(clever_cli, app_alias):
     return json.loads(activity_output.stdout)
 
 def deployment_logs(clever_cli, deployment, app_alias):
-    after = datetime.fromtimestamp(deployment.get("date")).isoformat()
+    after = datetime.fromtimestamp(deployment.get("date")/1000).isoformat()
     uuid = deployment.get("uuid")
     cmd = f'{clever_cli} logs --deployment-id {uuid} --after {after} --alias {app_alias}'
     fg = run(cmd, asynchronous=True)
