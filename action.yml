@@ -50,7 +50,7 @@ runs:
 
     - name: Install clever-tools
       shell: bash
-      run: pip3 install --user invoke  --break-system-packages
+      run: pip3 install --user invoke
 
     - name: Create app
       if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' }}
