@@ -48,6 +48,10 @@ runs:
       shell: bash
       run: npm install -g clever-tools
 
+    - name: Install clever-tools
+      shell: bash
+      run: apt install python3-invoke
+
     - name: Create app
       if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' }}
       shell: bash
