@@ -81,20 +81,18 @@ esac
     print(f"Following deployment {deployment_uid}")
     fg_get_logs = deployment_logs(clever_cli,  new_deployments[0], app_alias)
     while True:
-        print("in while True")
+        print("waiting deployment ......")
         deployments = get_deployments(clever_cli, app_alias)
-        print(f'in loop : deployements = {deployments}')
         deployment_info = [d for d in deployments if d["uuid"] == deployment_uid][0]
-        print(deployment_info)
         if deployment_info["state"] != "WIP":
             break
         time.sleep(10)
 
+    print(''.join(fg_get_logs.runner.stdout))
+    fg_get_logs.runner.kill()
+
     if deployment_info["state"] != "OK":
         sys.exit(f"Something went wrong in deployment {deployment_uid}")
-    else:
-        print(''.join(fg_get_logs.runner.stdout))
-        fg_get_logs.runner.kill()
 
 
 
