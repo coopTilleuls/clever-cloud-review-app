@@ -5,21 +5,23 @@ import json
 import os
 import stat
 import subprocess
+from invoke import run
 import sys
 import tempfile
 import time
+from datetime import date, datetime
 
 
 def get_deployments(clever_cli, app_alias):
-    activity_output = subprocess.check_output([clever_cli, "activity", "--format=json", "--alias", app_alias])
-    return json.loads(activity_output)
+    activity_output = run(f'{clever_cli} activity" --format=json --alias {app_alias}')
+    return json.loads(activity_output.stdout)
 
 def deployment_logs(clever_cli, deployment, app_alias):
-    logs = subprocess.check_output([clever_cli, "logs",
-                                    "--deployment-id", deployment.get("uuid"),
-                                    "--since", str(deployment.get("date")),
-                                    "--alias", app_alias])
-    print(logs)
+    after = datetime.fromtimestamp(deployment.get("date")).isoformat()
+    uuid = deployment.get("uuid")
+    cmd = f"{clever_cli} logs --deployment-id {uuid} --after {after} --alias {app_alias}"
+    fg = run(cmd, asynchronous=True)
+    return fg
 
 
 def deploy():
@@ -77,7 +79,7 @@ esac
 
     deployment_uid = new_deployments[0]["uuid"]
     print(f"Following deployment {deployment_uid}")
-
+    fg_get_logs = deployment_logs(clever_cli,  new_deployments[0], app_alias)
     while True:
         print("in while True")
         deployments = get_deployments(clever_cli, app_alias)
@@ -88,10 +90,12 @@ esac
             break
         time.sleep(10)
 
-    #deployment_logs(clever_cli, deployments[0], app_alias)
-
     if deployment_info["state"] != "OK":
         sys.exit(f"Something went wrong in deployment {deployment_uid}")
+    else:
+        print(''.join(fg_get_logs.runner.stdout))
+        fg_get_logs.runner.kill()
+
 
 
 if __name__ == "__main__":
