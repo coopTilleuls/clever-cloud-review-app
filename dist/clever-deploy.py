@@ -82,13 +82,13 @@ esac
     fg_get_logs = deployment_logs(clever_cli,  new_deployments[0], app_alias)
     offset = 0
     while True:
+        deployments = get_deployments(clever_cli, app_alias)
+        deployment_info = [d for d in deployments if d["uuid"] == deployment_uid][0]
         stdout = fg_get_logs.runner.stdout.copy()
         if len(stdout) > offset:
             sys.stdout.write(''.join(stdout[offset:]))
             offset = len(stdout)
         offset = len(stdout)
-        deployments = get_deployments(clever_cli, app_alias)
-        deployment_info = [d for d in deployments if d["uuid"] == deployment_uid][0]
         if deployment_info["state"] != "WIP":
             break
         time.sleep(3)
