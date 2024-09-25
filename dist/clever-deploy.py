@@ -13,7 +13,7 @@ from datetime import date, datetime
 
 
 def get_deployments(clever_cli, app_alias):
-    activity_output = run(f'{clever_cli} activity --format=json --alias {app_alias}')
+    activity_output = run(f'{clever_cli} activity --format=json --alias {app_alias}', hide=True)
     return json.loads(activity_output.stdout)
 
 def deployment_logs(clever_cli, deployment, app_alias):
@@ -91,7 +91,7 @@ esac
         deployment_info = [d for d in deployments if d["uuid"] == deployment_uid][0]
         if deployment_info["state"] != "WIP":
             break
-        time.sleep(10)
+        time.sleep(3)
 
     fg_get_logs.runner.kill()
 
