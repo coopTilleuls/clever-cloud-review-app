@@ -75,9 +75,8 @@ runs:
 #        ORGA_ID: ${{ inputs.organization }}
         REGION: ${{ inputs.region }}
       run: |
-        if clever link -o ${{ inputs.organization }} ${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }} then
+        if clever link -o ${{ inputs.organization }} ${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }} ; then
           echo "Applications already exists, updating..."
-          clever link -o ${{ inputs.organization }} ${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }}
           clever deploy --force
         else
           clever create --type ${{ inputs.type }} ${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }} --alias ${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }} --region ${{ env.REGION }} --org ${{ inputs.organization }}
@@ -86,7 +85,7 @@ runs:
         fi
       
     - name: Set environment variables
-      if: ${{ github.event.action == 'opened' || github.event.action == 'labeled' || github.event.action == 'reopened' && inputs.set-env }}
+      if: ${{ github.event.action == 'opened' || github.event.action == 'labeled' && inputs.set-env || github.event.action == 'reopened' && inputs.set-env }}
       shell: bash
       run: |
        # Remove prefix from print
