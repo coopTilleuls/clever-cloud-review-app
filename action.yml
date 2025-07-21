@@ -98,7 +98,7 @@ runs:
       if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'labeled' }}
       shell: bash
       id: deploy
-      run: clever deploy --force --same-commit-policy
+      run: clever deploy --force -p rebuild
 
     # Update comment
     - name: Comment PR
