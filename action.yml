@@ -82,6 +82,7 @@ runs:
         else
           clever create --type ${{ inputs.type }} ${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }} --alias ${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }} --region ${{ env.REGION }} --org ${{ inputs.organization }}
           clever domain add ${{ env.DOMAIN}}
+          clever deploy
         fi
       
     - name: Set environment variables
