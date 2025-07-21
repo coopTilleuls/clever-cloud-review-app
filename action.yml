@@ -77,11 +77,9 @@ runs:
       run: |
         if clever link -o ${{ inputs.organization }} ${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }} ; then
           echo "Applications already exists, updating..."
-          clever deploy --force
         else
           clever create --type ${{ inputs.type }} ${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }} --alias ${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }} --region ${{ env.REGION }} --org ${{ inputs.organization }}
           clever domain add ${{ env.DOMAIN}}
-          clever deploy --force
         fi
       
     - name: Set environment variables
@@ -97,10 +95,11 @@ runs:
        done
 
     - name: Deploy app
-      if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' }}
+      if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'labeled' }}
       shell: bash
       id: deploy
-      run: clever deploy
+      run: clever deploy --force
+
     # Update comment
     - name: Comment PR
       if: ${{ steps.deploy.outcome == 'success' && inputs.comment == 'true' }}
