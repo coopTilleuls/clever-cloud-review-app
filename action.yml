@@ -1,18 +1,21 @@
 name: 'Clever Cloud review app on PRs'
 description: 'Deploy a review app on Clever Cloud when a PR is opened'
+branding:
+  icon: 'upload-cloud'
+  color: 'red'
 
 inputs:
-  type:
+  type:  
     description: 'Which type of app to create'
     required: true
-  name:
-    description: 'The name of your app'
-    required: true
-    default: ${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }}
-  alias:
-    description: 'The alias of your app'
-    required: true
-    default: ${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }}
+#  name:
+#    description: 'The name of your app'
+#    required: true
+#    default: ${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }}
+#  alias:
+#    description: 'The alias of your app'
+#    required: true
+#    default: ${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }}
   region:
     description: 'The region to deploy on'
     required: true
@@ -29,37 +32,52 @@ inputs:
     description: 'Set environment variables'
     required: false
     default: 'false'
-  services:
-    description: "add-ons  to link"
-    required: false
-    default: ''
-  min-flavor:
-    description: "min flavor for the application"
-    required: false
-    default:  'nano'
   environment:
-        description: 'Environment to run tests against'
-        required: true
-        default: ''
+      description: 'Environment to run tests against'
+      required: true
+      default: ''
+  comment:
+    description: 'Comment PR with preview link?'
+    required: false
+    default: 'true'
 runs:
   using: "composite"
   steps:
+    # Create comment on PR
+    - name: Create comment
+      if: ${{ (github.event.action == 'opened' || github.event.action == 'reopened') && inputs.comment == 'true' }}
+      uses: peter-evans/create-or-update-comment@v4
+      id: cc
+      with:
+        issue-number: ${{ github.event.number }}
+        body: |
+          
+          ### :octocat: Preview is deploying...
+
+          Please wait while the preview is deploying on Clever Cloud...
+
+          | ℹ️ Name              | 🔗 Infos & links                           |
+          | --------------------| ------------------------------------------|
+          | 🌱 Deploying commit  | ${{ github.event.pull_request.head.sha }} |
+          | 👁️ Preview           |  **Generating preview app...**            |
+
+    # Install CLI 
     - name: Install clever-tools
       shell: bash
       run: npm install -g clever-tools
-
-    - name: Install clever-tools
-      shell: bash
-      run: pip3 install --user invoke
-
+    
+    # On PR opening, create & configure app
     - name: Create app
       if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' }}
       shell: bash
+      env:
+        DOMAIN: ${{ inputs.domain }}
+#        ORGA_ID: ${{ inputs.organization }}
+        REGION: ${{ inputs.region }}
       run: |
-        clever create --type ${{ inputs.type }} ${{ inputs.name }} --alias ${{ inputs.alias }} --region ${{ inputs.region }} --org ${{ inputs.organization }}
-        clever domain add ${{ inputs.domain }} --alias ${{ inputs.alias }}
-        clever scale --min-flavor ${{ inputs.min-flavor }} --alias ${{ inputs.alias }}
-
+        clever create --type ${{ inputs.type }} ${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }} --alias ${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }} --region ${{ env.REGION }} --org ${{ inputs.organization }}
+        clever domain add ${{ env.DOMAIN}}
+      
     - name: Set environment variables
       if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' && inputs.set-env }}
       shell: bash
@@ -69,81 +87,100 @@ runs:
        do
         real_var=${var#GH_}
         # Inject variable in the app on Clever Cloud
-          clever env set $real_var "${!var}" --alias ${{ inputs.alias }}
+          clever env set $real_var "${!var}"
        done
-
-    - name: Link service
-      if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' && inputs.services != '' }}
-      shell: bash
-      run: |
-        # loop services
-        for service in $(echo "${{inputs.services }}" ) ; do
-          clever service link-addon ${service} --alias ${{ inputs.alias }}
-        done
 
     - name: Deploy app
       if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' }}
       shell: bash
       id: deploy
-      run: python ${{ github.action_path }}/dist/clever-deploy.py --branch "$BRANCH" --app-alias ${{ inputs.alias }}
+      run: clever deploy
+    # Update comment
+    - name: Comment PR
+      if: ${{ steps.deploy.outcome == 'success' && inputs.comment == 'true' }}
+      uses: peter-evans/create-or-update-comment@v4
+      id: deploy-c
+      continue-on-error: true
+      env:
+        DOMAIN: ${{ inputs.domain }}
+      with:
+        issue-number: ${{ github.event.number }}
+        comment-id: ${{ steps.cc.outputs.comment-id }}
+        body: |
+          
+          ### ✅ Review app deployed
 
+          Check how your changes look like!
 
+          | ℹ️ Name                    | 🔗 Infos & links                          |
+          | ------------------------- | -------------------------------------------|
+          | 🌱 Latest deployed commit  | ${{ github.event.pull_request.head.sha }} |
+          | 👁️ Preview                 | https://${{ env.DOMAIN}}                      |
+
+        reactions: rocket
+        edit-mode: replace
+
+    # On new pushes on the PR
     - name: Update app
       if: ${{ github.event.action == 'synchronize' }}
       shell: bash
       id: update
       run: |
-        clever link -o "$ORGA_ID" ${{ inputs.name }}
-        # clever deploy --force --alias ${{ inputs.alias }}
-        git config http.postBuffer 524288000
-        python ${{ github.action_path }}dist/clever-deploy.py --branch "$BRANCH" --app-alias ${{ inputs.alias }}
+        clever link -o ${{ inputs.organization }} ${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }}
+        clever deploy --force
+    # Update comment    
+    - name: Find Comment
+      if: ${{ inputs.comment == 'true' }}
+      uses: peter-evans/find-comment@v3
+      id: fc
+      continue-on-error: true
+      with:
+        issue-number: ${{ github.event.number }}
+        comment-author: github-actions[bot]
+    - name: Update comment
+      if: ${{ steps.update.outcome == 'success' && inputs.comment == 'true' }}
+      uses: peter-evans/create-or-update-comment@v4
+      id: update-c
+      continue-on-error: true
+      env:
+        DOMAIN: ${{ inputs.domain }}
+      with:
+        issue-number: ${{ github.event.number }}
+        comment-id: ${{ steps.fc.outputs.comment-id }}
+        body: |
+          
+          ### ✅ Review app deployed
 
-    - name: Update app
+          Check how your changes look like!
+
+          | ℹ️ Name                    | 🔗 Infos & links                          |
+          | ------------------------- | ------------------------------------------|
+          | 🌱 Latest deployed commit  | ${{ github.event.pull_request.head.sha }} |
+          | 👁️ Preview                 | https://${{ env.DOMAIN}}                         |
+
+        reactions: rocket
+        edit-mode: replace
+    
+    - name: Delete app
       if: ${{ github.event.action == 'closed' }}
       shell: bash
       id: delete
       run: |
-        clever link -o "$ORGA_ID" ${{ inputs.name }}  --alias ${{ inputs.alias }}
-        clever delete --alias ${{ inputs.alias }} --yes
-
-    - name: Comment PR on app creation
-      if: ${{ steps.deploy.outcome == 'success' }}
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const issue_number = context.payload.pull_request.number;
-          const message = `Deployment has finished 👁️👄👁️ Your app is available [here](https://${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }}.cleverapps.io)`;
-            github.rest.issues.createComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-              issue_number: issue_number,
-              body: message
-              });
-
-    - name: Comment PR on app update
-      if: ${{ steps.update.outcome == 'success' }}
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const issue_number = context.payload.pull_request.number;
-          const message = `🚀 You updated your review app. Check it [here](https://${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }}.cleverapps.io)`;
-            github.rest.issues.createComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-              issue_number: issue_number,
-              body: message
-              });
+        clever link -o ${{ inputs.organization }} ${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }}
+        clever delete --alias ${{ github.event.pull_request.base.repo.name }}-PR-${{ github.event.number }} --yes
 
     - name: Comment PR on deletion
-      if: ${{ steps.delete.outcome == 'success' }}
-      uses: actions/github-script@v7
+      if: ${{ steps.delete.outcome == 'success' && inputs.comment == 'true' }}
+      uses: peter-evans/create-or-update-comment@v4
+      id: delete-c
+      continue-on-error: true
       with:
-        script: |
-          const issue_number = context.payload.pull_request.number;
-          const message = `You closed this PR and deleted the review app 👋`;
-            github.rest.issues.createComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-              issue_number: issue_number,
-              body: message
-              });
+        issue-number: ${{ github.event.number }}
+        comment-id: ${{ steps.fc.outputs.comment-id }}
+        body: |
+          
+          ###  👋` Review app deleted
+          
+          You closed this PR and deleted the review app.
+
+        edit-mode: replace
